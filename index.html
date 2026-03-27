@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AR Research Poster Experience</title>
+  <!-- Core VR/AR Libraries -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary-glow: #00d2ff;
+      --secondary-glow: #3a7bd5;
+      --bg-dark: #0f0f1a;
+      --accent: #ff007b;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg-dark);
+      color: #fff;
+    }
+
+    /* PREMIUM UI OVERLAY */
+    #ui-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #0f0f1a 100%);
+      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      padding: 20px;
+      text-align: center;
+    }
+
+    #ui-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(1.1);
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 3rem;
+      border-radius: 30px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+      max-width: 400px;
+      width: 90%;
+    }
+
+    .logo-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--primary-glow), var(--secondary-glow));
+      border-radius: 20px;
+      margin: 0 auto 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 30px rgba(0, 210, 255, 0.5);
+      animation: float 3s infinite ease-in-out;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #fff, #a5a5a5);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p {
+      font-size: 1rem;
+      color: #b0b0cc;
+      margin-bottom: 2.5rem;
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    #start-button {
+      padding: 1.2rem 3rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: white;
+      background: linear-gradient(135deg, var(--primary-glow) 0%, var(--secondary-glow) 100%);
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      box-shadow: 0 10px 20px rgba(0, 210, 255, 0.3);
+    }
+
+    #start-button:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 15px 30px rgba(0, 210, 255, 0.5);
+    }
+
+    /* AR HUD */
+    #ar-hud {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: none;
+      z-index: 10;
+    }
+
+    .scan-guide {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 280px;
+      height: 280px;
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      transition: opacity 0.3s;
+    }
+
+    .scan-guide::before {
+      content: 'SCANNING POSTER...';
+      position: absolute;
+      top: -40px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      color: var(--primary-glow);
+      text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+    }
+
+    /* 3 Second Countdown Visual */
+    .timer-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 120px;
+      height: 120px;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .timer-ring {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+    }
+
+    .timer-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary-glow);
+    }
+
+    /* Fullscreen Video Overlay */
+    #video-player-ui {
+      position: fixed;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 500px;
+      background: rgba(15, 15, 26, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 24px;
+      padding: 12px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+      display: none;
+      z-index: 100;
+      transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #video-player-ui.active {
+      display: block;
+      transform: translateX(-50%) translateY(0);
+      animation: slideUp 0.5s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateX(-50%) translateY(100px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    #video-player-ui video {
+      width: 100%;
+      border-radius: 16px;
+      display: block;
+    }
+
+    .video-caption {
+      padding: 12px;
+      font-size: 0.9rem;
+      color: #fff;
+      text-align: center;
+      letter-spacing: 1px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: -12px;
+      right: -12px;
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255, 0, 123, 0.4);
+      z-index: 110;
+      border: 2px solid #fff;
+    }
+
+    /* Hide A-Frame Inspector etc */
+    .a-enter-vr {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Interaction Layer -->
+  <div id="ui-overlay">
+    <div class="glass-card">
+      <div class="logo-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+          <circle cx="12" cy="13" r="4"></circle>
+        </svg>
+      </div>
+      <h1>Interactive Poster</h1>
+      <p>Scan a picture on the poster. Hold still for 3 seconds to unlock the video segment.</p>
+      <button id="start-button">Start Scanning</button>
+    </div>
+  </div>
+
+  <!-- HUD Overlay -->
+  <div id="ar-hud">
+    <div class="scan-guide" id="scan-guide"></div>
+
+    <!-- Loading indicator -->
+    <div class="timer-overlay" id="timer-ui">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6" />
+        <circle id="progress-circle" cx="60" cy="60" r="54" fill="none" stroke="var(--primary-glow)" stroke-width="6"
+          stroke-dasharray="339.29" stroke-dashoffset="339.29" transform="rotate(-90 60 60)"
+          style="transition: stroke-dashoffset 0.1s linear;" />
+      </svg>
+      <div class="timer-text" id="timer-countdown">3s</div>
+    </div>
+  </div>
+
+  <!-- UI Video Player -->
+  <div id="video-player-ui">
+    <div class="close-btn" id="close-video">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+        <path
+          d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+      </svg>
+    </div>
+    <video id="main-video" src="assets/videos/poster-video.mp4" playsinline controls></video>
+    <div class="video-caption" id="video-status">NOW PLAYING: SECTION 1</div>
+  </div>
+
+  <!-- AR Scene Definition with 6 Targets -->
+  <a-scene
+    mindar-image="imageTargetSrc: assets/targets/poster-target.mind; autoStart: false; filterMinCF:0.0001; filterBeta: 0.001; maxTrack: 1;"
+    embedded renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <a-entity class="target-anchor" mindar-image-target="targetIndex: 0" id="target-0"></a-entity>
+    <a-entity class="target-anchor" mindar-image-target="targetIndex: 1" id="target-1"></a-entity>
+    <a-entity class="target-anchor" mindar-image-target="targetIndex: 2" id="target-2"></a-entity>
+    <a-entity class="target-anchor" mindar-image-target="targetIndex: 3" id="target-3"></a-entity>
+    <a-entity class="target-anchor" mindar-image-target="targetIndex: 4" id="target-4"></a-entity>
+    <a-entity class="target-anchor" mindar-image-target="targetIndex: 5" id="target-5"></a-entity>
+  </a-scene>
+
+  <script>
+    /**
+     * CONFIGURATION: TIME STAMPS
+     * Adjust these start/end times (seconds) for each of your 6 images.
+     */
+    const TIMESTAMP_MAP = [
+      { name: "Segment 1: Overview", start: 32, end: 45 },
+      { name: "Segment 2: Methods", start: 46, end: 63 },
+      { name: "Segment 3: Data Analysis", start: 64, end: 90 },
+      { name: "Segment 4: Results", start: 112, end: 139 },
+      { name: "Segment 5: Discussion", start: 140, end: 154 },
+      { name: "Segment 6: Summary", start: 155, end: 170 }
+    ];
+
+    const WAIT_TIME = 3000;
+
+    const startButton = document.getElementById('start-button');
+    const uiOverlay = document.getElementById('ui-overlay');
+    const arHud = document.getElementById('ar-hud');
+    const timerUI = document.getElementById('timer-ui');
+    const progressCircle = document.getElementById('progress-circle');
+    const timerText = document.getElementById('timer-countdown');
+    const videoPlayer = document.getElementById('video-player-ui');
+    const mainVideo = document.getElementById('main-video');
+    const videoCaption = document.getElementById('video-status');
+    const scanGuide = document.getElementById('scan-guide');
+    const closeVideo = document.getElementById('close-video');
+    const sceneEl = document.querySelector('a-scene');
+
+    let currentTargetIndex = -1;
+    let holdTimer = null;
+    let holdStartTime = 0;
+    let isVideoOpen = false;
+
+    // Start AR
+    startButton.addEventListener('click', () => {
+      uiOverlay.classList.add('hidden');
+      arHud.style.display = 'block';
+      sceneEl.systems['mindar-image-system'].start();
+      mainVideo.load();
+    });
+
+    // Target Listeners
+    const targets = document.querySelectorAll('.target-anchor');
+    targets.forEach((target, index) => {
+      target.addEventListener("targetFound", () => {
+        if (isVideoOpen) return;
+        console.log(`Found target ${index}`);
+        currentTargetIndex = index;
+        startHoldTimer();
+        scanGuide.style.opacity = '0';
+      });
+
+      target.addEventListener("targetLost", () => {
+        if (currentTargetIndex === index) {
+          cancelHoldTimer();
+          if (!isVideoOpen) scanGuide.style.opacity = '1';
+        }
+      });
+    });
+
+    function startHoldTimer() {
+      holdStartTime = Date.now();
+      timerUI.style.display = 'block';
+      timerUI.style.opacity = '1';
+
+      const circleLength = 339.29;
+
+      holdTimer = setInterval(() => {
+        const elapsed = Date.now() - holdStartTime;
+        const progress = Math.min(elapsed / WAIT_TIME, 1);
+
+        const offset = circleLength - (progress * circleLength);
+        progressCircle.style.strokeDashoffset = offset;
+        timerText.innerText = `${Math.ceil((WAIT_TIME - elapsed) / 1000)}s`;
+
+        if (progress >= 1) {
+          clearInterval(holdTimer);
+          triggerVideoActivation();
+        }
+      }, 50);
+    }
+
+    function cancelHoldTimer() {
+      clearInterval(holdTimer);
+      timerUI.style.opacity = '0';
+      setTimeout(() => {
+        if (timerUI.style.opacity === '0') timerUI.style.display = 'none';
+      }, 300);
+      currentTargetIndex = -1;
+    }
+
+    function triggerVideoActivation() {
+      timerUI.style.opacity = '0';
+      setTimeout(() => { timerUI.style.display = 'none'; }, 300);
+
+      const config = TIMESTAMP_MAP[currentTargetIndex];
+      if (config) {
+        showVideo(config);
+      }
+    }
+
+    function showVideo(config) {
+      isVideoOpen = true;
+      videoPlayer.classList.add('active');
+      videoCaption.innerText = `NOW PLAYING: ${config.name}`;
+
+      mainVideo.currentTime = config.start;
+      mainVideo.play();
+
+      const checkEnd = () => {
+        if (mainVideo.currentTime >= config.end) {
+          mainVideo.pause();
+          mainVideo.removeEventListener('timeupdate', checkEnd);
+        }
+      };
+      mainVideo.addEventListener('timeupdate', checkEnd);
+    }
+
+    closeVideo.addEventListener('click', () => {
+      mainVideo.pause();
+      videoPlayer.classList.remove('active');
+      isVideoOpen = false;
+      scanGuide.style.opacity = '1';
+    });
+  </script>
+</body>
+
+</html>
