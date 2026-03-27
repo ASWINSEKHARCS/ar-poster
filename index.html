@@ -75,15 +75,8 @@
     }
 
     @keyframes float {
-
-      0%,
-      100% {
-        transform: translateY(0);
-      }
-
-      50% {
-        transform: translateY(-10px);
-      }
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
     }
 
     h1 {
@@ -93,6 +86,7 @@
       letter-spacing: -0.5px;
       background: linear-gradient(to right, #fff, #a5a5a5);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
@@ -218,15 +212,8 @@
     }
 
     @keyframes slideUp {
-      from {
-        transform: translateX(-50%) translateY(100px);
-        opacity: 0;
-      }
-
-      to {
-        transform: translateX(-50%) translateY(0);
-        opacity: 1;
-      }
+      from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+      to { transform: translateX(-50%) translateY(0); opacity: 1; }
     }
 
     #video-player-ui video {
@@ -263,9 +250,7 @@
     }
 
     /* Hide A-Frame Inspector etc */
-    .a-enter-vr {
-      display: none;
-    }
+    .a-enter-vr { display: none; }
   </style>
 </head>
 
@@ -305,11 +290,10 @@
   <div id="video-player-ui">
     <div class="close-btn" id="close-video">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-        <path
-          d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
       </svg>
     </div>
-    <video id="main-video" src="assets/videos/poster-video.mp4" playsinline controls></video>
+    <video id="main-video" src="https://media.githubusercontent.com/media/ASWINSEKHARCS/ar-poster/main/assets/videos/KKH_SIT_GameVideo%20-%20Aswin%20Sekhar%20C%20S.mp4" playsinline controls crossorigin="anonymous"></video>
     <div class="video-caption" id="video-status">NOW PLAYING: SECTION 1</div>
   </div>
 
@@ -332,7 +316,6 @@
   <script>
     /**
      * CONFIGURATION: TIME STAMPS
-     * Adjust these start/end times (seconds) for each of your 6 images.
      */
     const TIMESTAMP_MAP = [
       { name: "Segment 1: Overview", start: 32, end: 45 },
@@ -368,7 +351,11 @@
       uiOverlay.classList.add('hidden');
       arHud.style.display = 'block';
       sceneEl.systems['mindar-image-system'].start();
-      mainVideo.load();
+      
+      // Critical for mobile auto-play: must play within user gesture
+      mainVideo.play().then(() => {
+        mainVideo.pause();
+      }).catch(e => console.log("Video init requires manual click", e));
     });
 
     // Target Listeners
